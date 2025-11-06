@@ -1,0 +1,40 @@
+bundle:
+  name: banking_default_model_bundle
+
+workspace:
+  host: https://dbc-64239bfe-e47d.cloud.databricks.com
+
+targets:
+  default:
+    mode: development
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+resources:
+  jobs:
+    # -------------------------------------------------------
+    # 1. Model Registration Job
+    # -------------------------------------------------------
+    Banking_Model_Register:
+      name: Banking_Model_Register
+      tasks:
+        - task_key: register_model
+          description: "Registers the latest MLflow run into the model registry"
+          notebook_task:
+            notebook_path: ./notebooks/ModelRegistry.ipynb
+          timeout_seconds: 1800
+
+    # -------------------------------------------------------
+    # 2. Batch Inference Job (uses champion model)
+    # -------------------------------------------------------
+    Banking_Default_Inference:
+      name: Banking_Default_Inference
+      tasks:
+        - task_key: inference
+          description: "Runs batch inference using the champion model"
+          notebook_task:
+            notebook_path: ./notebooks/Deploy.ipynb
+          timeout_seconds: 3600
+      schedule:
+        quartz_cron_expression: "0 9 * * ?"   # daily at 9 AM UTC
+        timezone_id: Pacific/Auckland
