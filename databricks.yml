@@ -2,7 +2,7 @@ bundle:
   name: banking_default_model_bundle
 
 workspace:
-  host: xxxx
+  host: https://dbc-64239bfe-e47d.cloud.databricks.com
   file_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/files
 
 sync:
