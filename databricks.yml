@@ -15,7 +15,7 @@ targets:
   default:
     mode: development
     workspace:
-      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.srx/${src.name}/${src.target}
 
 resources:
   jobs:
@@ -25,7 +25,7 @@ resources:
         - task_key: register_model
           description: "Registers the latest MLflow run into the model registry"
           notebook_task:
-            notebook_path: ${workspace.file_path}/notebooks/ModelRegistry.ipynb
+            notebook_path: ${workspace.file_path}/src/ModelRegistry.ipynb
             source: WORKSPACE
           timeout_seconds: 1800
           # No cluster config - will use serverless automatically
@@ -36,7 +36,7 @@ resources:
         - task_key: inference
           description: "Runs batch inference using the champion model"
           notebook_task:
-            notebook_path: ${workspace.file_path}/notebooks/Deploy.ipynb
+            notebook_path: ${workspace.file_path}/src/Deploy.ipynb
             source: WORKSPACE
           timeout_seconds: 3600
           # No cluster config - will use serverless automatically
