@@ -25,7 +25,7 @@ jobs:
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "🔍 Validating Databricks bundle configuration..."
-          databricks bundle validate
+          databricks bundle validate --target=default
           echo "✅ Bundle validation passed successfully"
 
   # ==================================
@@ -56,6 +56,8 @@ jobs:
     needs: deploy-bundle
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+      
       - name: Setup Databricks CLI
         uses: databricks/setup-cli@main
       
@@ -66,10 +68,7 @@ jobs:
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "🚀 Starting model registration job..."
-          run_id=$(databricks jobs run-now --job-name "Banking_Model_Register" | jq -r '.run_id')
-          echo "Databricks Job Run ID: $run_id"
-          databricks runs wait --run-id "$run_id" --timeout 900
-          databricks runs get-output --run-id "$run_id"
+          databricks bundle run Banking_Model_Register --target=default
           echo "✅ Model registration completed."
 
   manual-approval:
@@ -85,6 +84,8 @@ jobs:
     needs: manual-approval
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+      
       - name: Setup Databricks CLI
         uses: databricks/setup-cli@main
       
@@ -94,8 +95,5 @@ jobs:
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "🚀 Starting inference job..."
-          run_id=$(databricks jobs run-now --job-name "Banking_Default_Inference" | jq -r '.run_id')
-          echo "Databricks Job Run ID: $run_id"
-          databricks runs wait --run-id "$run_id" --timeout 900
-          databricks runs get-output --run-id "$run_id"
+          databricks bundle run Banking_Default_Inference --target=default
           echo "✅ Inference completed successfully."

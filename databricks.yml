@@ -2,7 +2,7 @@ bundle:
   name: banking_default_model_bundle
 
 workspace:
-  host: https://dbc-64239bfe-e47d.cloud.databricks.com
+  host: xxxx
   file_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/files
 
 sync:
@@ -36,7 +36,7 @@ resources:
         - task_key: inference
           description: "Runs batch inference using the champion model"
           notebook_task:
-            notebook_path: ${workspace.file_path}/notebooks/Deploy
+            notebook_path: ${workspace.file_path}/notebooks/Deploy.ipynb
             source: WORKSPACE
           timeout_seconds: 3600
           # No cluster config - will use serverless automatically
