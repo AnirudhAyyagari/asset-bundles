@@ -25,7 +25,7 @@ resources:
         - task_key: register_model
           description: "Registers the latest MLflow run into the model registry"
           notebook_task:
-            notebook_path: ${workspace.file_path}/notebooks/ModelRegistry
+            notebook_path: ${workspace.file_path}/notebooks/ModelRegistry.ipynb
             source: WORKSPACE
           timeout_seconds: 1800
           # No cluster config - will use serverless automatically
