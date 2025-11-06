@@ -1,0 +1,47 @@
+bundle:
+  name: banking_default_model_bundle
+
+workspace:
+  host: https://dbc-64239bfe-e47d.cloud.databricks.com
+  # Point to where bundle will deploy files
+  file_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/files
+
+# Sync local notebooks to workspace
+sync:
+  include:
+    - "*.yml"
+    - "src/*.ipynb"
+    - "src/*.py"
+
+targets:
+  default:
+    mode: development
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+resources:
+  jobs:
+    Banking_Model_Register:
+      name: Banking_Model_Register
+      tasks:
+        - task_key: register_model
+          description: "Registers the latest MLflow run into the model registry"
+          notebook_task:
+            # Reference the notebook from your src folder
+            notebook_path: ${workspace.file_path}/src/ModelRegistry
+            source: WORKSPACE
+          timeout_seconds: 1800
+
+    Banking_Default_Inference:
+      name: Banking_Default_Inference
+      tasks:
+        - task_key: inference
+          description: "Runs batch inference using the champion model"
+          notebook_task:
+            # Reference the notebook from your src folder
+            notebook_path: ${workspace.file_path}/src/Deploy
+            source: WORKSPACE
+          timeout_seconds: 3600
+      schedule:
+        quartz_cron_expression: "0 0 9 * * ?"
+        timezone_id: Pacific/Auckland
