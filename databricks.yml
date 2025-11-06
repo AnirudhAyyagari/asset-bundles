@@ -62,5 +62,5 @@ resources:
           
           # Or use new_cluster option like above
       schedule:
-        quartz_cron_expression: "0 9 * * ?"
+        quartz_cron_expression: "0 0 9 * * ?" 
         timezone_id: Pacific/Auckland
