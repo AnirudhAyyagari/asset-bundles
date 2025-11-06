@@ -5,7 +5,6 @@ workspace:
   host: https://dbc-64239bfe-e47d.cloud.databricks.com
   file_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/files
 
-# Sync notebooks to workspace
 sync:
   include:
     - "*.yml"
@@ -20,9 +19,6 @@ targets:
 
 resources:
   jobs:
-    # -------------------------------------------------------
-    # 1. Model Registration Job
-    # -------------------------------------------------------
     Banking_Model_Register:
       name: Banking_Model_Register
       tasks:
@@ -32,22 +28,8 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/ModelRegistry
             source: WORKSPACE
           timeout_seconds: 1800
-          # ADD: Cluster configuration (choose one option below)
-          
-          # Option 1: Use an existing cluster (RECOMMENDED for testing)
-          existing_cluster_id: "1106-004407-u87y9m7a-v2n"
-          
-          # Option 2: Create a new cluster for each run
-          # new_cluster:
-          #   spark_version: "13.3.x-scala2.12"
-          #   node_type_id: "i3.xlarge"
-          #   num_workers: 2
-          #   spark_conf:
-          #     "spark.databricks.delta.preview.enabled": "true"
+          # No cluster config - will use serverless automatically
 
-    # -------------------------------------------------------
-    # 2. Batch Inference Job (uses champion model)
-    # -------------------------------------------------------
     Banking_Default_Inference:
       name: Banking_Default_Inference
       tasks:
@@ -57,10 +39,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/Deploy
             source: WORKSPACE
           timeout_seconds: 3600
-          # ADD: Cluster configuration
-          existing_cluster_id: "1106-004407-u87y9m7a-v2n"
-          
-          # Or use new_cluster option like above
+          # No cluster config - will use serverless automatically
       schedule:
-        quartz_cron_expression: "0 0 9 * * ?" 
+        quartz_cron_expression: "0 0 9 * * ?"
         timezone_id: Pacific/Auckland
