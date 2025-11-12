@@ -50,7 +50,7 @@ jobs:
 
   register-model-dev:
     name: Register Model (Dev)
-    needs: run-inference-dev
+    needs: deploy-bundle
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
