@@ -7,9 +7,6 @@ on:
       - main
 
 jobs:
-  # ==================================
-  # NEW: VALIDATION STEP
-  # ==================================
   validate-bundle:
     name: Validate Bundle Configuration
     runs-on: ubuntu-latest
@@ -28,12 +25,9 @@ jobs:
           databricks bundle validate --target=default
           echo "✅ Bundle validation passed successfully"
 
-  # ==================================
-  # EXISTING JOBS (UNCHANGED)
-  # ==================================
   deploy-bundle:
     name: Deploy Databricks Asset Bundle
-    needs: validate-bundle  # Only deploy if validation passes
+    needs: validate-bundle
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -70,30 +64,3 @@ jobs:
           echo "🚀 Starting model registration job..."
           databricks bundle run Banking_Model_Register --target=default
           echo "✅ Model registration completed."
-
-  manual-approval:
-    name: Manual Model Validation
-    needs: register-model
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - run: echo "⏸️ Waiting for manual approval (reviewer must approve in GitHub)."
-
-  run-inference:
-    name: Run Batch Inference Job
-    needs: manual-approval
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Databricks CLI
-        uses: databricks/setup-cli@main
-      
-      - name: Trigger Inference Job
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: |
-          echo "🚀 Starting inference job..."
-          databricks bundle run Banking_Default_Inference --target=default
-          echo "✅ Inference completed successfully."
