@@ -26,7 +26,7 @@ targets:
   prod:
     mode: production
     workspace:
-      host: https://<your-prod-workspace>.cloud.databricks.com
+      host: https://dbc-57661877-0140.cloud.databricks.com
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
       file_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/files
     run_as:
