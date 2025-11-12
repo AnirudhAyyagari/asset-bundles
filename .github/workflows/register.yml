@@ -1,44 +1,93 @@
-name: Databricks ML Model Registration
+name: Databricks ML Model CI/CD (Unified)
 
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
     branches:
       - main
+  push:
+    branches:
+      - main
 
 jobs:
   validate-bundle:
+    name: Validate Bundle Configuration
     runs-on: ubuntu-latest
+    # Skip duplicate push runs from PR merges
+    if: github.event_name != 'push' || github.event.pull_request == null
     steps:
       - uses: actions/checkout@v3
-      - uses: databricks/setup-cli@main
-      - run: databricks bundle validate --target=default
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Validate Bundle
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "🔍 Validating Databricks bundle configuration..."
+          databricks bundle validate --target=default
+          echo "✅ Bundle validation passed successfully"
 
   deploy-bundle:
+    name: Deploy Databricks Asset Bundle
     needs: validate-bundle
     runs-on: ubuntu-latest
+    if: github.event_name != 'push' || github.event.pull_request == null
     steps:
       - uses: actions/checkout@v3
-      - uses: databricks/setup-cli@main
-      - run: databricks bundle deploy --target=default
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Deploy Bundle
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "Validating and deploying Databricks asset bundle..."
+          databricks bundle validate
+          databricks bundle deploy --target=default
+          echo "✅ Bundle deployed successfully."
 
   register-model:
+    name: Run Model Registration
     needs: deploy-bundle
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v3
-      - uses: databricks/setup-cli@main
-      - run: |
-          echo "🚀 Registering model..."
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Trigger Model Registration Job
+        id: register
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "🚀 Starting model registration job..."
           databricks bundle run Banking_Model_Register --target=default
           echo "✅ Model registration completed."
 
-  approval-gate:
-    name: Manual Approval Before Merge
-    needs: register-model
+  run-inference:
+    name: Run Batch Inference Job
+    needs: deploy-bundle
     runs-on: ubuntu-latest
-    environment: model-validation
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - name: Wait for manual approval
+      - uses: actions/checkout@v3
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Trigger Inference Job
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
-          echo "Waiting for manual approval: check model registry in Databricks."
+          echo "🚀 Starting inference job..."
+          databricks bundle run Banking_Default_Inference --target=default
+          echo "✅ Inference completed successfully."
