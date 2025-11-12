@@ -1,24 +1,40 @@
 bundle:
   name: banking_default_model_bundle
 
-workspace:
-  host: https://dbc-64239bfe-e47d.cloud.databricks.com
-  # Point to where bundle will deploy files
-  file_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/files
-
-# Sync local notebooks to workspace
+# -------------------------------------------------------------------
+# Default workspace and sync settings
+# -------------------------------------------------------------------
 sync:
   include:
     - "*.yml"
     - "src/*.ipynb"
     - "src/*.py"
 
+# -------------------------------------------------------------------
+# Define environments for dev and prod
+# -------------------------------------------------------------------
 targets:
   default:
     mode: development
     workspace:
+      host: https://dbc-64239bfe-e47d.cloud.databricks.com
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+      file_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/files
+    run_as:
+      user_name: ${workspace.current_user.userName}  # same PAT-based auth for POC
 
+  prod:
+    mode: production
+    workspace:
+      host: https://<your-prod-workspace>.cloud.databricks.com
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+      file_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/files
+    run_as:
+      user_name: ${workspace.current_user.userName}  # same PAT-based auth for POC
+
+# -------------------------------------------------------------------
+# Shared resources (identical for all environments)
+# -------------------------------------------------------------------
 resources:
   jobs:
     Banking_Model_Register:
@@ -27,7 +43,6 @@ resources:
         - task_key: register_model
           description: "Registers the latest MLflow run into the model registry"
           notebook_task:
-            # Reference the notebook from your src folder
             notebook_path: ${workspace.file_path}/src/ModelRegistry
             source: WORKSPACE
           timeout_seconds: 1800
@@ -38,7 +53,6 @@ resources:
         - task_key: inference
           description: "Runs batch inference using the champion model"
           notebook_task:
-            # Reference the notebook from your src folder
             notebook_path: ${workspace.file_path}/src/Deploy
             source: WORKSPACE
           timeout_seconds: 3600
