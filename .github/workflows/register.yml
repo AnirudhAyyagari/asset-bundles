@@ -23,7 +23,6 @@ jobs:
       - run: databricks bundle deploy --target=default
 
   register-model:
-    name: Register Model in Databricks
     needs: deploy-bundle
     runs-on: ubuntu-latest
     steps:
