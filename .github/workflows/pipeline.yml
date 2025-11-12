@@ -8,17 +8,22 @@ on:
   push:
     branches:
       - main
+    # Avoid re-triggering on workflow file edits or PR merges
+    paths-ignore:
+      - '.github/**'
 
 jobs:
   validate-bundle:
     name: Validate Bundle Configuration
     runs-on: ubuntu-latest
+    # Skip duplicate push runs from PR merges
+    if: github.event_name != 'push' || github.event.pull_request == null
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Databricks CLI
         uses: databricks/setup-cli@main
-      
+
       - name: Validate Bundle
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
@@ -32,12 +37,13 @@ jobs:
     name: Deploy Databricks Asset Bundle
     needs: validate-bundle
     runs-on: ubuntu-latest
+    if: github.event_name != 'push' || github.event.pull_request == null
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Databricks CLI
         uses: databricks/setup-cli@main
-      
+
       - name: Deploy Bundle
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
@@ -55,10 +61,10 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Databricks CLI
         uses: databricks/setup-cli@main
-      
+
       - name: Trigger Model Registration Job
         id: register
         env:
@@ -76,10 +82,10 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Databricks CLI
         uses: databricks/setup-cli@main
-      
+
       - name: Trigger Inference Job
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
