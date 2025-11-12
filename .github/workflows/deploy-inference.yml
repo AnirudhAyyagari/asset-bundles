@@ -1,0 +1,42 @@
+name: Databricks ML Model Inference
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run-inference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Validate Bundle
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "🔍 Validating Databricks bundle configuration..."
+          databricks bundle validate --target=default
+          echo "✅ Validation successful."
+
+      - name: Deploy Bundle
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "🚀 Deploying Databricks bundle..."
+          databricks bundle deploy --target=default
+          echo "✅ Deployment successful."
+
+      - name: Run Batch Inference
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "🚀 Running inference after merge..."
+          databricks bundle run Banking_Default_Inference --target=default
+          echo "✅ Inference completed successfully."

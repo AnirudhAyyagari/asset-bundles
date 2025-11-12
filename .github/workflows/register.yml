@@ -1,0 +1,45 @@
+name: Databricks ML Model Registration
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches:
+      - main
+
+jobs:
+  validate-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate --target=default
+
+  deploy-bundle:
+    needs: validate-bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle deploy --target=default
+
+  register-model:
+    name: Register Model in Databricks
+    needs: deploy-bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: databricks/setup-cli@main
+      - run: |
+          echo "🚀 Registering model..."
+          databricks bundle run Banking_Model_Register --target=default
+          echo "✅ Model registration completed."
+
+  approval-gate:
+    name: Manual Approval Before Merge
+    needs: register-model
+    runs-on: ubuntu-latest
+    environment: model-validation
+    steps:
+      - name: Wait for manual approval
+        run: |
+          echo "Waiting for manual approval: check model registry in Databricks."
