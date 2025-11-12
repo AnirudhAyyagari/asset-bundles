@@ -78,6 +78,7 @@ jobs:
   # ==========================================
   run-inference:
     name: Run Batch Inference Job
+    needs: register-model
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
