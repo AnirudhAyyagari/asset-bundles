@@ -1,8 +1,11 @@
-name: Databricks ML Model CI/CD (PR Trigger)
+name: Databricks ML Model CI/CD (Unified)
 
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
+    branches:
+      - main
+  push:
     branches:
       - main
 
@@ -49,6 +52,7 @@ jobs:
     name: Run Model Registration
     needs: deploy-bundle
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v3
       
@@ -64,3 +68,23 @@ jobs:
           echo "🚀 Starting model registration job..."
           databricks bundle run Banking_Model_Register --target=default
           echo "✅ Model registration completed."
+
+  run-inference:
+    name: Run Batch Inference Job
+    needs: deploy-bundle
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+      
+      - name: Trigger Inference Job
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "🚀 Starting inference job..."
+          databricks bundle run Banking_Default_Inference --target=default
+          echo "✅ Inference completed successfully."
