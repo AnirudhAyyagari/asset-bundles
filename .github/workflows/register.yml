@@ -1,4 +1,4 @@
-name: Databricks ML Model CI/CD (Single Environment)
+name: Databricks ML Model CI/CD (Dev + Prod with Approval)
 
 on:
   pull_request:
@@ -9,90 +9,133 @@ on:
     branches:
       - main
 
+env:
+  DEV_HOST: ${{ secrets.DATABRICKS_HOST_DEV }}
+  DEV_TOKEN: ${{ secrets.DATABRICKS_TOKEN_DEV }}
+  PROD_HOST: ${{ secrets.DATABRICKS_HOST_PROD }}
+  PROD_TOKEN: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+
 jobs:
-  # ==========================================
-  # PR WORKFLOW: Validation & Model Registration
-  # ==========================================
+  # ============================
+  # PHASE 1 (PR): DEV PATH
+  # ============================
   validate-bundle:
-    name: Validate Bundle Configuration
+    name: Validate Bundle (Dev)
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Setup Databricks CLI
-        uses: databricks/setup-cli@main
-      
-      - name: Validate Bundle
+      - uses: databricks/setup-cli@main
+      - name: Validate Bundle (Dev)
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_HOST: ${{ env.DEV_HOST }}
+          DATABRICKS_TOKEN: ${{ env.DEV_TOKEN }}
         run: |
-          echo "🔍 Validating Databricks bundle configuration..."
           databricks bundle validate --target=default
-          echo "✅ Bundle validation passed successfully"
 
   deploy-bundle:
-    name: Deploy Databricks Asset Bundle
+    name: Deploy Bundle (Dev)
     needs: validate-bundle
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Setup Databricks CLI
-        uses: databricks/setup-cli@main
-      
-      - name: Deploy Bundle
+      - uses: databricks/setup-cli@main
+      - name: Deploy Bundle (Dev)
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_HOST: ${{ env.DEV_HOST }}
+          DATABRICKS_TOKEN: ${{ env.DEV_TOKEN }}
         run: |
-          echo "📦 Deploying Databricks asset bundle..."
           databricks bundle deploy --target=default
-          echo "✅ Bundle deployed successfully"
 
-  register-model:
-    name: Register Model
+  run-inference-dev:
+    name: Run Inference (Dev)
     needs: deploy-bundle
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Setup Databricks CLI
-        uses: databricks/setup-cli@main
-      
-      - name: Trigger Model Registration Job
+      - uses: databricks/setup-cli@main
+      - name: Trigger Inference (Dev)
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_HOST: ${{ env.DEV_HOST }}
+          DATABRICKS_TOKEN: ${{ env.DEV_TOKEN }}
         run: |
-          echo "🚀 Starting model registration job..."
-          databricks bundle run Banking_Model_Register --target=default
-          echo "✅ Model registration completed"
-          echo "📝 Model is now registered and ready for inference"
+          databricks bundle run Banking_Default_Inference --target=default
 
-  # ==========================================
-  # PUSH WORKFLOW: Run Inference on Merge
-  # ==========================================
-  run-inference:
-    name: Run Batch Inference Job
-    needs: register-model
+  manual-approval:
+    name: Manual Approval Before Prod
+    needs: run-inference-dev
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    environment:
+      name: dev-validation   # create this Environment in repo settings with required reviewers
+    steps:
+      - run: |
+          echo "Waiting for approval: review DEV results, then approve to promote to PROD (validate/deploy/register)."
+
+  # ============================
+  # PHASE 1 (PR): PROD PROMOTION (NO INFERENCE)
+  # ============================
+  validate-bundle-prod-pr:
+    name: Validate Bundle (Prod)
+    needs: manual-approval
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: databricks/setup-cli@main
+      - name: Validate Bundle (Prod)
+        env:
+          DATABRICKS_HOST: ${{ env.PROD_HOST }}
+          DATABRICKS_TOKEN: ${{ env.PROD_TOKEN }}
+        run: |
+          databricks bundle validate --target=prod
+
+  deploy-bundle-prod-pr:
+    name: Deploy Bundle (Prod)
+    needs: validate-bundle-prod-pr
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: databricks/setup-cli@main
+      - name: Deploy Bundle (Prod)
+        env:
+          DATABRICKS_HOST: ${{ env.PROD_HOST }}
+          DATABRICKS_TOKEN: ${{ env.PROD_TOKEN }}
+        run: |
+          databricks bundle deploy --target=prod
+
+  register-model-prod-pr:
+    name: Register Model (Prod)
+    needs: deploy-bundle-prod-pr
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: databricks/setup-cli@main
+      - name: Trigger Model Registration (Prod)
+        env:
+          DATABRICKS_HOST: ${{ env.PROD_HOST }}
+          DATABRICKS_TOKEN: ${{ env.PROD_TOKEN }}
+        run: |
+          databricks bundle run Banking_Model_Register --target=prod
+      # STOP HERE on PR. No prod inference in PR phase.
+
+  # ============================
+  # PHASE 2 (MERGE): PROD INFERENCE ONLY
+  # ============================
+  run-inference-prod:
+    name: Run Inference (Prod)
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Setup Databricks CLI
-        uses: databricks/setup-cli@main
-      
-      - name: Trigger Inference Job
+      - uses: databricks/setup-cli@main
+      - name: Trigger Inference (Prod)
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_HOST: ${{ env.PROD_HOST }}
+          DATABRICKS_TOKEN: ${{ env.PROD_TOKEN }}
         run: |
-          echo "🚀 Starting inference job on main branch..."
-          databricks bundle run Banking_Default_Inference --target=default
-          echo "✅ Inference completed successfully"
-          echo "📊 Check Databricks workspace for inference results"
+          databricks bundle run Banking_Default_Inference --target=prod
