@@ -61,7 +61,7 @@ jobs:
           DATABRICKS_HOST: ${{ env.DEV_HOST }}
           DATABRICKS_TOKEN: ${{ env.DEV_TOKEN }}
         run: |
-          databricks bundle run Banking_Default_Model_Register --target=default
+          databricks bundle run Banking_Model_Register --target=default
 
   run-inference-dev:
     name: Run Inference (Dev)
