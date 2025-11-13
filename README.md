@@ -25,7 +25,6 @@ When you run a bundle command, Databricks performs three main actions:
 
 1. Configuration Resolution
 
-The bundle reads your databricks.yml file.
 
 It applies environment-specific overrides (Dev, Staging, Prod).
 
